@@ -59,14 +59,22 @@ def create_voice(
             shutil.copyfileobj(audio_file.file, tmp)
             tmp_path = Path(tmp.name)
         ref_wav = voice_dir / "reference.wav"
-        audio.to_wav(tmp_path, ref_wav, max_seconds=audio.MAX_REF_SECONDS)
+        audio.to_wav(tmp_path, ref_wav)
         tmp_path.unlink()
 
-        if duration := audio.duration_secs(ref_wav):
-            if duration < 3:
-                raise HTTPException(400, "Reference clip too short — record at least 3 seconds.")
+        duration = audio.duration_secs(ref_wav)
+        if duration < 3:
+            raise HTTPException(400, "Reference clip too short — record at least 3 seconds.")
+        if duration > audio.MAX_REF_SECONDS:
+            # F5-TTS paces output by the reference's chars-per-second, so the
+            # transcript must match the audio exactly. After trimming, the
+            # provided transcript no longer does — discard it and re-transcribe.
+            trimmed = voice_dir / "reference_trimmed.wav"
+            audio.to_wav(ref_wav, trimmed, max_seconds=audio.MAX_REF_SECONDS)
+            trimmed.replace(ref_wav)
+            ref_text = ""
 
-        # No transcript provided -> auto-transcribe (first call downloads Whisper).
+        # No transcript (or trimmed) -> auto-transcribe (first call downloads Whisper).
         ref_text = ref_text.strip() or engine.transcribe(ref_wav)
 
         with db.connect() as conn:

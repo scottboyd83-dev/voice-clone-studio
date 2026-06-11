@@ -143,7 +143,8 @@ function NewVoiceModal({ onClose, onCreated }) {
               />
             </div>
             <span className="hint">
-              Best results: a clean 8–12s clip of just your voice. Longer files are trimmed to 12s.
+              Best results: a clean 8–12s clip of just your voice. Longer files are trimmed
+              to 12s and auto-transcribed (any transcript you enter below is ignored).
             </span>
             <label className="field">Transcript of the clip (optional — auto-transcribed if blank)</label>
             <textarea

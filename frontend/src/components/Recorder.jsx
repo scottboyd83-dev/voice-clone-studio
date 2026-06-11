@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 
-// Reading script shown while recording the reference clip (~10s read aloud).
-// Phonetically varied, with a question for natural pitch movement.
+// Reading script shown while recording the reference clip.
+// Kept short on purpose: F5-TTS paces output by the reference's chars-per-second,
+// and clips over 12s get trimmed — this reads in ~9s at a natural pace.
 export const REFERENCE_SCRIPT =
-  "The quick brown fox jumps over the lazy dog, but honestly, who measures a " +
-  "fox's enthusiasm? On Thursday morning I drank fresh orange juice, watched the " +
-  "weather change, and wondered: could this voice really be cloned?";
+  "Here's a quick sample of my natural speaking voice. The rainbow appears " +
+  "after the storm, and the quick brown fox jumps over the lazy dog.";
 
 // Mic recorder with a live oscilloscope while recording.
 // Calls onRecorded(blob) with audio/webm when the user stops.
@@ -98,9 +98,15 @@ export default function Recorder({ onRecorded }) {
         ) : (
           <button className="btn rec recording" onClick={stop}>■ Stop</button>
         )}
-        <span className="hint">
-          Aim for 8–12 seconds. Quiet room, normal speaking voice, ~20cm from the mic.
-        </span>
+        {recording && elapsed > 12 ? (
+          <span className="hint" style={{ color: "var(--red)" }}>
+            Over 12s — the clip will be trimmed and re-transcribed. Shorter is better.
+          </span>
+        ) : (
+          <span className="hint">
+            Aim for 8–12 seconds. Quiet room, normal speaking voice, ~20cm from the mic.
+          </span>
+        )}
       </div>
       {error && <div className="error-bar">{error}</div>}
     </div>
