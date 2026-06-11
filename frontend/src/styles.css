@@ -613,6 +613,36 @@ select:focus { border-color: var(--amber); }
 .manifest { margin-top: 14px; }
 .manifest code { font-size: 11px; color: var(--text-dim); }
 
+.engine-badge {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  padding: 2px 8px;
+  border-radius: 9px;
+  border: 1px solid var(--line-bright);
+  color: var(--text-dim);
+}
+.engine-badge.gptsovits {
+  color: var(--amber);
+  border-color: rgba(245, 165, 36, 0.5);
+  background: var(--amber-soft);
+}
+
+.log-tail {
+  margin-top: 10px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 10px 12px;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--text-faint);
+  max-height: 180px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
 footer.colophon {
   border-top: 1px solid var(--line);
   padding: 16px 36px;

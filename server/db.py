@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS voices (
     name TEXT NOT NULL,
     description TEXT DEFAULT '',
     ref_text TEXT NOT NULL,
+    engine TEXT NOT NULL DEFAULT 'f5',   -- f5 (instant) | gptsovits (fine-tuned)
+    model TEXT,                          -- JSON weight/prompt paths for gptsovits
     created_at REAL NOT NULL
 );
 CREATE TABLE IF NOT EXISTS takes (
@@ -45,6 +47,11 @@ def connect() -> sqlite3.Connection:
 def init_db() -> None:
     with connect() as conn:
         conn.executescript(SCHEMA)
+        # migrate pre-Phase-3 databases
+        cols = {r["name"] for r in conn.execute("PRAGMA table_info(voices)")}
+        if "engine" not in cols:
+            conn.execute("ALTER TABLE voices ADD COLUMN engine TEXT NOT NULL DEFAULT 'f5'")
+            conn.execute("ALTER TABLE voices ADD COLUMN model TEXT")
 
 
 def new_id() -> str:

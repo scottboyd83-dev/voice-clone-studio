@@ -114,16 +114,25 @@ export default function GeneratePage({ voices, initialVoiceId, modelLoaded }) {
             onChange={set("speed")} format={(v) => `${v.toFixed(2)}×`}
             hint="Pacing of delivery"
           />
-          <Slider
-            name="Quality" value={settings.nfe_step} min={8} max={64} step={4}
-            onChange={set("nfe_step")} format={(v) => `${v} steps`}
-            hint="Higher = cleaner, slower to render"
-          />
-          <Slider
-            name="Voice adherence" value={settings.cfg_strength} min={1} max={4} step={0.1}
-            onChange={set("cfg_strength")} format={(v) => v.toFixed(1)}
-            hint="How tightly output sticks to your reference timbre"
-          />
+          {voices.find((v) => v.id === voiceId)?.engine === "gptsovits" ? (
+            <div className="hint" style={{ margin: "10px 0" }}>
+              ★ Fine-tuned voice — timbre and delivery are baked into the trained model;
+              speed and seed apply, quality/adherence sliders don't.
+            </div>
+          ) : (
+            <>
+              <Slider
+                name="Quality" value={settings.nfe_step} min={8} max={64} step={4}
+                onChange={set("nfe_step")} format={(v) => `${v} steps`}
+                hint="Higher = cleaner, slower to render"
+              />
+              <Slider
+                name="Voice adherence" value={settings.cfg_strength} min={1} max={4} step={0.1}
+                onChange={set("cfg_strength")} format={(v) => v.toFixed(1)}
+                hint="How tightly output sticks to your reference timbre"
+              />
+            </>
+          )}
 
           <label className="field">Seed</label>
           {seedLock === null ? (

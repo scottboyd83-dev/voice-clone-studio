@@ -52,4 +52,14 @@ export const api = {
   // dataset
   datasetBuild: () => fetch("/api/dataset/build", { method: "POST" }).then(check),
   datasetStatus: () => fetch("/api/dataset/status").then(check),
+  listDatasets: () => fetch("/api/datasets").then(check),
+
+  // fine-tuning
+  trainStart: (payload) =>
+    fetch("/api/train", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then(check),
+  trainStatus: () => fetch("/api/train/status").then(check),
 };

@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from . import audio, db, dataset, engine, quality
+from . import audio, db, dataset, engine, finetune, gsv, quality
 from .paths import GENERATIONS_DIR, TAKES_DIR, VOICES_DIR
 from .scripts_corpus import SCRIPTS
 
@@ -98,6 +98,8 @@ def _voice_row_to_dict(row) -> dict:
         "name": row["name"],
         "description": row["description"],
         "ref_text": row["ref_text"],
+        "engine": row["engine"],
+        "model": row["model"],
         "created_at": row["created_at"],
     }
 
@@ -166,7 +168,10 @@ def generate(req: GenerateRequest):
         seed=req.seed, remove_silence=req.remove_silence,
     )
     try:
-        used_seed = engine.generate(ref_wav, voice["ref_text"], req.text, settings, out_wav)
+        if voice["engine"] == "gptsovits":
+            used_seed = gsv.generate(voice, req.text, req.speed, req.seed, out_wav)
+        else:
+            used_seed = engine.generate(ref_wav, voice["ref_text"], req.text, settings, out_wav)
     except Exception as e:
         out_wav.unlink(missing_ok=True)
         raise HTTPException(500, f"Generation failed: {e}")
@@ -357,6 +362,38 @@ def dataset_status():
     if s["state"] == "idle":
         s["manifest"] = dataset.latest_manifest()
     return s
+
+
+@app.get("/api/datasets")
+def list_datasets():
+    out = []
+    for mf in sorted(dataset.DATASETS_DIR.glob("*/manifest.json"), reverse=True):
+        out.append(json.loads(mf.read_text()))
+    return out
+
+
+# ---------- fine-tuning ----------
+
+class TrainRequest(BaseModel):
+    dataset_id: str
+    voice_name: str = Field(min_length=1, max_length=80)
+    sovits_epochs: int = Field(default=8, ge=1, le=25)
+    gpt_epochs: int = Field(default=15, ge=1, le=50)
+
+
+@app.post("/api/train")
+def train_start(req: TrainRequest):
+    try:
+        job_id = finetune.start(req.dataset_id, req.voice_name.strip(),
+                                req.sovits_epochs, req.gpt_epochs)
+    except RuntimeError as e:
+        raise HTTPException(409, str(e))
+    return {"job_id": job_id}
+
+
+@app.get("/api/train/status")
+def train_status():
+    return finetune.status()
 
 
 @app.delete("/api/generations/{gen_id}")

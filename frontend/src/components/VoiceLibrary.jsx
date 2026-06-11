@@ -36,7 +36,10 @@ export default function VoiceLibrary({ voices, onChanged, onUse }) {
             <div className="voice-card" key={v.id}>
               <h3>{v.name}</h3>
               <div className="meta">
-                created {new Date(v.created_at * 1000).toLocaleDateString()}
+                <span className={`engine-badge ${v.engine}`}>
+                  {v.engine === "gptsovits" ? "★ fine-tuned" : "instant"}
+                </span>{" "}
+                · created {new Date(v.created_at * 1000).toLocaleDateString()}
               </div>
               {v.description && <div className="desc">{v.description}</div>}
               <AudioPlayer src={api.voiceRefUrl(v.id)} />
