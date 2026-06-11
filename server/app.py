@@ -9,8 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from . import audio, db, engine
-from .paths import GENERATIONS_DIR, VOICES_DIR
+from . import audio, db, dataset, engine, quality
+from .paths import GENERATIONS_DIR, TAKES_DIR, VOICES_DIR
+from .scripts_corpus import SCRIPTS
 
 app = FastAPI(title="Voice Clone Studio")
 
@@ -229,6 +230,133 @@ def generation_audio(gen_id: str, format: str = "wav"):
             audio.wav_to_mp3(wav, mp3)
         return FileResponse(mp3, media_type="audio/mpeg", filename=f"{gen_id}.mp3")
     return FileResponse(wav, media_type="audio/wav", filename=f"{gen_id}.wav")
+
+
+# ---------- recording studio ----------
+
+@app.get("/api/studio/scripts")
+def studio_scripts():
+    with db.connect() as conn:
+        counts = dict(conn.execute(
+            "SELECT script_id, COUNT(*) FROM takes WHERE status='kept' GROUP BY script_id"
+        ).fetchall())
+    return [
+        {"script_id": i, "category": cat, "text": text, "takes": counts.get(i, 0)}
+        for i, (cat, text) in enumerate(SCRIPTS)
+    ]
+
+
+def _take_row_to_dict(row) -> dict:
+    return {
+        "id": row["id"],
+        "script_id": row["script_id"],
+        "text": row["text"],
+        "duration_secs": row["duration_secs"],
+        "metrics": json.loads(row["metrics"]) if row["metrics"] else None,
+        "verify_score": row["verify_score"],
+        "verify_text": row["verify_text"],
+        "created_at": row["created_at"],
+    }
+
+
+@app.post("/api/studio/takes")
+def create_take(script_id: int = Form(...), audio_file: UploadFile = File(...)):
+    if not 0 <= script_id < len(SCRIPTS):
+        raise HTTPException(400, "Unknown script")
+    take_id = db.new_id()
+    wav = TAKES_DIR / f"{take_id}.wav"
+    try:
+        suffix = Path(audio_file.filename or "take").suffix or ".bin"
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            shutil.copyfileobj(audio_file.file, tmp)
+            tmp_path = Path(tmp.name)
+        audio.to_wav(tmp_path, wav)
+        tmp_path.unlink()
+        metrics = quality.analyze(wav)
+        with db.connect() as conn:
+            conn.execute(
+                "INSERT INTO takes (id, script_id, text, duration_secs, metrics, created_at) "
+                "VALUES (?,?,?,?,?,?)",
+                (take_id, script_id, SCRIPTS[script_id][1], metrics["duration_secs"],
+                 json.dumps(metrics), db.now()),
+            )
+        return get_take(take_id)
+    except HTTPException:
+        wav.unlink(missing_ok=True)
+        raise
+    except Exception as e:
+        wav.unlink(missing_ok=True)
+        raise HTTPException(500, f"Failed to save take: {e}")
+
+
+@app.get("/api/studio/takes")
+def list_takes(script_id: int | None = None):
+    q = "SELECT * FROM takes WHERE status='kept'"
+    args: tuple = ()
+    if script_id is not None:
+        q += " AND script_id=?"
+        args = (script_id,)
+    q += " ORDER BY created_at DESC"
+    with db.connect() as conn:
+        rows = conn.execute(q, args).fetchall()
+    return [_take_row_to_dict(r) for r in rows]
+
+
+@app.get("/api/studio/takes/{take_id}")
+def get_take(take_id: str):
+    with db.connect() as conn:
+        row = conn.execute("SELECT * FROM takes WHERE id=?", (take_id,)).fetchone()
+    if not row:
+        raise HTTPException(404, "Take not found")
+    return _take_row_to_dict(row)
+
+
+@app.get("/api/studio/takes/{take_id}/audio")
+def take_audio(take_id: str):
+    path = TAKES_DIR / f"{take_id}.wav"
+    if not path.exists():
+        raise HTTPException(404, "Take audio not found")
+    return FileResponse(path, media_type="audio/wav")
+
+
+@app.delete("/api/studio/takes/{take_id}")
+def delete_take(take_id: str):
+    with db.connect() as conn:
+        deleted = conn.execute("DELETE FROM takes WHERE id=?", (take_id,)).rowcount
+    if not deleted:
+        raise HTTPException(404, "Take not found")
+    (TAKES_DIR / f"{take_id}.wav").unlink(missing_ok=True)
+    return {"ok": True}
+
+
+@app.get("/api/studio/stats")
+def studio_stats():
+    with db.connect() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) AS n, COALESCE(SUM(duration_secs),0) AS secs, "
+            "COUNT(DISTINCT script_id) AS scripts FROM takes WHERE status='kept'"
+        ).fetchone()
+    return {"takes": row["n"], "total_secs": row["secs"],
+            "scripts_covered": row["scripts"], "scripts_total": len(SCRIPTS)}
+
+
+# ---------- dataset ----------
+
+@app.post("/api/dataset/build")
+def dataset_build():
+    try:
+        dataset.start_build()
+    except RuntimeError as e:
+        raise HTTPException(409, str(e))
+    return {"ok": True}
+
+
+@app.get("/api/dataset/status")
+def dataset_status():
+    s = dataset.status()
+    if s["state"] == "idle":
+        s["manifest"] = dataset.latest_manifest()
+    return s
 
 
 @app.delete("/api/generations/{gen_id}")

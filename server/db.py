@@ -12,6 +12,17 @@ CREATE TABLE IF NOT EXISTS voices (
     ref_text TEXT NOT NULL,
     created_at REAL NOT NULL
 );
+CREATE TABLE IF NOT EXISTS takes (
+    id TEXT PRIMARY KEY,
+    script_id INTEGER NOT NULL,
+    text TEXT NOT NULL,
+    duration_secs REAL,
+    metrics TEXT,                    -- JSON from quality.analyze
+    status TEXT DEFAULT 'kept',      -- kept | discarded
+    verify_score REAL,               -- transcript match 0-1, set during dataset build
+    verify_text TEXT,                -- what Whisper heard
+    created_at REAL NOT NULL
+);
 CREATE TABLE IF NOT EXISTS generations (
     id TEXT PRIMARY KEY,
     voice_id TEXT NOT NULL REFERENCES voices(id) ON DELETE CASCADE,

@@ -537,6 +537,82 @@ select:focus { border-color: var(--amber); }
 .generating .bars span:nth-child(5) { height: 50%; animation-delay: 0.6s; }
 @keyframes eq { 50% { transform: scaleY(0.3); } }
 
+/* ============ studio ============ */
+
+.studio-stats { display: flex; gap: 36px; margin-bottom: 14px; }
+.studio-stats .stat b {
+  display: block;
+  font-family: var(--serif);
+  font-size: 26px;
+  font-weight: 400;
+  color: var(--amber);
+}
+.studio-stats .stat span {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--text-faint);
+}
+
+.progress-track {
+  height: 6px;
+  background: var(--line);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--amber), #ffc95e);
+  border-radius: 3px;
+  transition: width 0.4s ease;
+  box-shadow: 0 0 10px var(--amber-glow);
+}
+
+.prompt-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.cat-badge {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  padding: 3px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line-bright);
+  color: var(--text-dim);
+}
+.cat-badge.question { color: #6cb8ff; border-color: rgba(108, 184, 255, 0.4); }
+.cat-badge.expressive { color: #ff9e6c; border-color: rgba(255, 158, 108, 0.4); }
+.cat-badge.numbers { color: #c0a8ff; border-color: rgba(192, 168, 255, 0.4); }
+.cat-badge.passage { color: #7ad9a2; border-color: rgba(122, 217, 162, 0.4); }
+
+.metric-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 4px; }
+.metric-chip {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 4px 12px;
+  border-radius: 3px;
+  border: 1px solid var(--line-bright);
+  color: var(--text-dim);
+}
+.metric-chip.pass { color: var(--green); border-color: rgba(95, 208, 104, 0.45); background: rgba(95, 208, 104, 0.07); }
+.metric-chip.warn { color: var(--amber); border-color: rgba(245, 165, 36, 0.45); background: var(--amber-soft); }
+.metric-chip.fail { color: var(--red); border-color: rgba(229, 72, 77, 0.45); background: rgba(229, 72, 77, 0.07); }
+
+.issue-list {
+  list-style: none;
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.issue-list li::before { content: "▸ "; color: var(--amber); }
+
+.manifest { margin-top: 14px; }
+.manifest code { font-size: 11px; color: var(--text-dim); }
+
 footer.colophon {
   border-top: 1px solid var(--line);
   padding: 16px 36px;

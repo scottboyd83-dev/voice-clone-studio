@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { api } from "./api.js";
 import VoiceLibrary from "./components/VoiceLibrary.jsx";
+import StudioPage from "./components/StudioPage.jsx";
 import GeneratePage from "./components/GeneratePage.jsx";
 import HistoryPage from "./components/HistoryPage.jsx";
 
 const TABS = [
   { id: "voices", label: "Voices" },
+  { id: "studio", label: "Studio" },
   { id: "generate", label: "Generate" },
   { id: "history", label: "History" },
 ];
@@ -78,6 +80,7 @@ export default function App() {
         {tab === "voices" && (
           <VoiceLibrary voices={voices} onChanged={refreshVoices} onUse={gotoGenerate} />
         )}
+        {tab === "studio" && <StudioPage />}
         {tab === "generate" && (
           <GeneratePage
             voices={voices}
@@ -90,7 +93,7 @@ export default function App() {
 
       <footer className="colophon">
         <span>All audio stays on this machine</span>
-        <span>Phase 1 · Instant clone</span>
+        <span>Phase 2 · Recording studio</span>
       </footer>
     </>
   );

@@ -35,4 +35,21 @@ export const api = {
     fetch(`/api/generations${voiceId ? `?voice_id=${voiceId}` : ""}`).then(check),
   deleteGeneration: (id) => fetch(`/api/generations/${id}`, { method: "DELETE" }).then(check),
   genAudioUrl: (id, format = "wav") => `/api/generations/${id}/audio?format=${format}`,
+
+  // recording studio
+  listScripts: () => fetch("/api/studio/scripts").then(check),
+  createTake: (scriptId, blob) => {
+    const fd = new FormData();
+    fd.append("script_id", scriptId);
+    fd.append("audio_file", blob, "take.webm");
+    return fetch("/api/studio/takes", { method: "POST", body: fd }).then(check);
+  },
+  listTakes: () => fetch("/api/studio/takes").then(check),
+  deleteTake: (id) => fetch(`/api/studio/takes/${id}`, { method: "DELETE" }).then(check),
+  takeAudioUrl: (id) => `/api/studio/takes/${id}/audio`,
+  studioStats: () => fetch("/api/studio/stats").then(check),
+
+  // dataset
+  datasetBuild: () => fetch("/api/dataset/build", { method: "POST" }).then(check),
+  datasetStatus: () => fetch("/api/dataset/status").then(check),
 };
