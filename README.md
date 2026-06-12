@@ -5,6 +5,13 @@ Local, private voice cloning — ElevenLabs-style features, everything on-device
 professional-grade clones, and **Seed-VC** for speech-to-speech voice changing,
 all on Apple Silicon.
 
+## Install on a new Mac
+
+Apple Silicon required. Easiest: download
+[`install/Install Voice Clone Studio.command`](install/Install%20Voice%20Clone%20Studio.command),
+double-click it, follow the prompts (right-click → Open the first time).
+Full prerequisites and the manual route are in [SETUP.md](SETUP.md).
+
 ## Run
 
 ```sh
