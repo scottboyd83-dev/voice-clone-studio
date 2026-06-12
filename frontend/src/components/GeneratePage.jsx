@@ -3,7 +3,7 @@ import { api } from "../api.js";
 import AudioPlayer from "./AudioPlayer.jsx";
 import Slider from "./Slider.jsx";
 
-const DEFAULTS = { speed: 1.0, nfe_step: 32, cfg_strength: 2.0 };
+const DEFAULTS = { speed: 1.0, nfe_step: 32, cfg_strength: 2.0, top_k: 5, top_p: 1.0, temperature: 1.0 };
 
 export default function GeneratePage({ voices, initialVoiceId, modelLoaded }) {
   const [voiceId, setVoiceId] = useState(initialVoiceId || voices[0]?.id || "");
@@ -30,6 +30,9 @@ export default function GeneratePage({ voices, initialVoiceId, modelLoaded }) {
         nfe_step: settings.nfe_step,
         cfg_strength: settings.cfg_strength,
         seed: seedLock,
+        top_k: settings.top_k,
+        top_p: settings.top_p,
+        temperature: settings.temperature,
       });
       setResult(gen);
     } catch (e) {
@@ -115,10 +118,27 @@ export default function GeneratePage({ voices, initialVoiceId, modelLoaded }) {
             hint="Pacing of delivery"
           />
           {voices.find((v) => v.id === voiceId)?.engine === "gptsovits" ? (
-            <div className="hint" style={{ margin: "10px 0" }}>
-              ★ Fine-tuned voice — timbre and delivery are baked into the trained model;
-              speed and seed apply, quality/adherence sliders don't.
-            </div>
+            <>
+              <div className="hint" style={{ margin: "10px 0" }}>
+                ★ Fine-tuned voice — timbre is baked into the trained model; these
+                sampling knobs shape delivery variation.
+              </div>
+              <Slider
+                name="Top-k" value={settings.top_k} min={1} max={40} step={1}
+                onChange={set("top_k")} format={(v) => `${v}`}
+                hint="Candidate pool per step — lower = safer, higher = livelier"
+              />
+              <Slider
+                name="Top-p" value={settings.top_p} min={0.1} max={1} step={0.05}
+                onChange={set("top_p")} format={(v) => v.toFixed(2)}
+                hint="Nucleus sampling cutoff"
+              />
+              <Slider
+                name="Temperature" value={settings.temperature} min={0.1} max={2} step={0.05}
+                onChange={set("temperature")} format={(v) => v.toFixed(2)}
+                hint="Overall randomness — under 1 for consistency, over 1 for expressiveness"
+              />
+            </>
           ) : (
             <>
               <Slider

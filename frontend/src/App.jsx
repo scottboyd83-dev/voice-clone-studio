@@ -4,6 +4,7 @@ import VoiceLibrary from "./components/VoiceLibrary.jsx";
 import StudioPage from "./components/StudioPage.jsx";
 import TrainPage from "./components/TrainPage.jsx";
 import GeneratePage from "./components/GeneratePage.jsx";
+import ConvertPage from "./components/ConvertPage.jsx";
 import HistoryPage from "./components/HistoryPage.jsx";
 
 const TABS = [
@@ -11,6 +12,7 @@ const TABS = [
   { id: "studio", label: "Studio" },
   { id: "train", label: "Train" },
   { id: "generate", label: "Generate" },
+  { id: "convert", label: "Convert" },
   { id: "history", label: "History" },
 ];
 
@@ -91,12 +93,13 @@ export default function App() {
             modelLoaded={modelLoaded}
           />
         )}
+        {tab === "convert" && <ConvertPage voices={voices} />}
         {tab === "history" && <HistoryPage voices={voices} />}
       </main>
 
       <footer className="colophon">
         <span>All audio stays on this machine</span>
-        <span>Phase 3 · Fine-tuning</span>
+        <span>Phase 4 · Voice changer</span>
       </footer>
     </>
   );

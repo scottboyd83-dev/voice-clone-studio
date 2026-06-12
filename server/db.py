@@ -25,6 +25,14 @@ CREATE TABLE IF NOT EXISTS takes (
     verify_text TEXT,                -- what Whisper heard
     created_at REAL NOT NULL
 );
+CREATE TABLE IF NOT EXISTS conversions (
+    id TEXT PRIMARY KEY,
+    voice_id TEXT NOT NULL REFERENCES voices(id) ON DELETE CASCADE,
+    source_name TEXT NOT NULL,       -- original upload filename or 'recording'
+    settings TEXT NOT NULL,          -- JSON: diffusion_steps, length_adjust, f0...
+    duration_secs REAL,
+    created_at REAL NOT NULL
+);
 CREATE TABLE IF NOT EXISTS generations (
     id TEXT PRIMARY KEY,
     voice_id TEXT NOT NULL REFERENCES voices(id) ON DELETE CASCADE,

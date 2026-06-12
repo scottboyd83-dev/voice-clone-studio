@@ -7,14 +7,15 @@ from pathlib import Path
 MAX_REF_SECONDS = 12
 
 
-def to_wav(src: Path, dst: Path, *, mono: bool = True, max_seconds: float | None = None) -> None:
-    """Convert any audio file (webm/m4a/mp3/...) to 24kHz PCM wav."""
+def to_wav(src: Path, dst: Path, *, mono: bool = True, max_seconds: float | None = None,
+           sample_rate: int = 24000) -> None:
+    """Convert any audio file (webm/m4a/mp3/...) to PCM wav (24kHz default)."""
     cmd = ["ffmpeg", "-y", "-i", str(src)]
     if max_seconds:
         cmd += ["-t", str(max_seconds)]
     if mono:
         cmd += ["-ac", "1"]
-    cmd += ["-ar", "24000", "-c:a", "pcm_s16le", str(dst)]
+    cmd += ["-ar", str(sample_rate), "-c:a", "pcm_s16le", str(dst)]
     subprocess.run(cmd, check=True, capture_output=True)
 
 

@@ -62,4 +62,19 @@ export const api = {
       body: JSON.stringify(payload),
     }).then(check),
   trainStatus: () => fetch("/api/train/status").then(check),
+
+  // speech-to-speech conversion
+  convertStatus: () => fetch("/api/convert/status").then(check),
+  convertWarmup: () => fetch("/api/convert/warmup", { method: "POST" }).then(check),
+  convert: ({ voiceId, blob, filename, ...settings }) => {
+    const fd = new FormData();
+    fd.append("voice_id", voiceId);
+    for (const [k, v] of Object.entries(settings)) fd.append(k, v);
+    fd.append("audio_file", blob, filename || "recording.webm");
+    return fetch("/api/convert", { method: "POST", body: fd }).then(check);
+  },
+  listConversions: (voiceId) =>
+    fetch(`/api/conversions${voiceId ? `?voice_id=${voiceId}` : ""}`).then(check),
+  deleteConversion: (id) => fetch(`/api/conversions/${id}`, { method: "DELETE" }).then(check),
+  convAudioUrl: (id, which = "output") => `/api/conversions/${id}/audio?which=${which}`,
 };

@@ -9,8 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from . import audio, db, dataset, engine, finetune, gsv, quality
-from .paths import GENERATIONS_DIR, TAKES_DIR, VOICES_DIR
+from . import audio, db, dataset, engine, finetune, gsv, quality, seedvc
+from .paths import CONVERSIONS_DIR, GENERATIONS_DIR, TAKES_DIR, VOICES_DIR
 from .scripts_corpus import SCRIPTS
 
 app = FastAPI(title="Voice Clone Studio")
@@ -152,6 +152,10 @@ class GenerateRequest(BaseModel):
     cfg_strength: float = Field(default=2.0, ge=1.0, le=4.0)
     seed: int | None = None
     remove_silence: bool = False
+    # GPT-SoVITS sampling (ignored by the F5 engine)
+    top_k: int = Field(default=5, ge=1, le=100)
+    top_p: float = Field(default=1.0, ge=0.05, le=1.0)
+    temperature: float = Field(default=1.0, ge=0.05, le=2.0)
 
 
 @app.post("/api/generate")
@@ -169,7 +173,9 @@ def generate(req: GenerateRequest):
     )
     try:
         if voice["engine"] == "gptsovits":
-            used_seed = gsv.generate(voice, req.text, req.speed, req.seed, out_wav)
+            used_seed = gsv.generate(voice, req.text, req.speed, req.seed, out_wav,
+                                     top_k=req.top_k, top_p=req.top_p,
+                                     temperature=req.temperature)
         else:
             used_seed = engine.generate(ref_wav, voice["ref_text"], req.text, settings, out_wav)
     except Exception as e:
@@ -180,6 +186,7 @@ def generate(req: GenerateRequest):
     settings_json = json.dumps({
         "speed": req.speed, "nfe_step": req.nfe_step, "cfg_strength": req.cfg_strength,
         "seed": req.seed, "remove_silence": req.remove_silence,
+        "top_k": req.top_k, "top_p": req.top_p, "temperature": req.temperature,
     })
     with db.connect() as conn:
         conn.execute(
@@ -235,6 +242,144 @@ def generation_audio(gen_id: str, format: str = "wav"):
             audio.wav_to_mp3(wav, mp3)
         return FileResponse(mp3, media_type="audio/mpeg", filename=f"{gen_id}.mp3")
     return FileResponse(wav, media_type="audio/wav", filename=f"{gen_id}.wav")
+
+
+# ---------- speech-to-speech conversion (Seed-VC) ----------
+
+@app.get("/api/convert/status")
+def convert_status():
+    return {"installed": seedvc.is_installed(), "state": seedvc.state()}
+
+
+@app.post("/api/convert/warmup")
+def convert_warmup():
+    if not seedvc.is_installed():
+        raise HTTPException(409, "Seed-VC is not installed — run scripts/setup_seedvc.sh")
+    threading.Thread(target=seedvc.ensure_running, daemon=True).start()
+    return {"ok": True}
+
+
+@app.post("/api/convert")
+def convert(
+    voice_id: str = Form(...),
+    diffusion_steps: int = Form(25),
+    length_adjust: float = Form(1.0),
+    f0_condition: bool = Form(False),
+    auto_f0_adjust: bool = Form(True),
+    pitch_shift: int = Form(0),
+    audio_file: UploadFile = File(...),
+):
+    voice = get_voice(voice_id)
+    target_wav = VOICES_DIR / voice_id / "reference.wav"
+    if not target_wav.exists():
+        raise HTTPException(404, "Reference audio missing for this voice")
+    if not 1 <= diffusion_steps <= 100:
+        raise HTTPException(400, "diffusion_steps must be 1-100")
+    if not 0.5 <= length_adjust <= 2.0:
+        raise HTTPException(400, "length_adjust must be 0.5-2.0")
+    if not -24 <= pitch_shift <= 24:
+        raise HTTPException(400, "pitch_shift must be -24..24 semitones")
+
+    conv_id = db.new_id()
+    source_wav = CONVERSIONS_DIR / f"{conv_id}_source.wav"
+    out_wav = CONVERSIONS_DIR / f"{conv_id}.wav"
+    try:
+        suffix = Path(audio_file.filename or "source").suffix or ".bin"
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            shutil.copyfileobj(audio_file.file, tmp)
+            tmp_path = Path(tmp.name)
+        # 44.1k keeps full bandwidth for the singing (f0) path's 44.1k output
+        audio.to_wav(tmp_path, source_wav, sample_rate=44100)
+        tmp_path.unlink()
+
+        src_secs = audio.duration_secs(source_wav)
+        if src_secs < 1:
+            raise HTTPException(400, "Source clip too short — need at least 1 second of speech.")
+        if src_secs > 300:
+            raise HTTPException(400, "Source clip too long — keep it under 5 minutes.")
+
+        seedvc.convert(
+            source_wav, target_wav, out_wav,
+            diffusion_steps=diffusion_steps, length_adjust=length_adjust,
+            f0_condition=f0_condition, auto_f0_adjust=auto_f0_adjust,
+            pitch_shift=pitch_shift,
+        )
+
+        settings_json = json.dumps({
+            "diffusion_steps": diffusion_steps, "length_adjust": length_adjust,
+            "f0_condition": f0_condition, "auto_f0_adjust": auto_f0_adjust,
+            "pitch_shift": pitch_shift,
+        })
+        source_name = Path(audio_file.filename).name if audio_file.filename else "recording"
+        with db.connect() as conn:
+            conn.execute(
+                "INSERT INTO conversions (id, voice_id, source_name, settings, duration_secs, created_at) "
+                "VALUES (?,?,?,?,?,?)",
+                (conv_id, voice_id, source_name, settings_json,
+                 audio.duration_secs(out_wav), db.now()),
+            )
+        return get_conversion(conv_id)
+    except HTTPException:
+        source_wav.unlink(missing_ok=True)
+        out_wav.unlink(missing_ok=True)
+        raise
+    except Exception as e:
+        source_wav.unlink(missing_ok=True)
+        out_wav.unlink(missing_ok=True)
+        raise HTTPException(500, f"Conversion failed: {e}")
+
+
+def _conv_row_to_dict(row) -> dict:
+    return {
+        "id": row["id"],
+        "voice_id": row["voice_id"],
+        "source_name": row["source_name"],
+        "settings": json.loads(row["settings"]),
+        "duration_secs": row["duration_secs"],
+        "created_at": row["created_at"],
+    }
+
+
+@app.get("/api/conversions")
+def list_conversions(voice_id: str | None = None):
+    q = "SELECT * FROM conversions"
+    args: tuple = ()
+    if voice_id:
+        q += " WHERE voice_id=?"
+        args = (voice_id,)
+    q += " ORDER BY created_at DESC LIMIT 200"
+    with db.connect() as conn:
+        rows = conn.execute(q, args).fetchall()
+    return [_conv_row_to_dict(r) for r in rows]
+
+
+@app.get("/api/conversions/{conv_id}")
+def get_conversion(conv_id: str):
+    with db.connect() as conn:
+        row = conn.execute("SELECT * FROM conversions WHERE id=?", (conv_id,)).fetchone()
+    if not row:
+        raise HTTPException(404, "Conversion not found")
+    return _conv_row_to_dict(row)
+
+
+@app.get("/api/conversions/{conv_id}/audio")
+def conversion_audio(conv_id: str, which: str = "output"):
+    name = f"{conv_id}_source.wav" if which == "source" else f"{conv_id}.wav"
+    path = CONVERSIONS_DIR / name
+    if not path.exists():
+        raise HTTPException(404, "Audio not found")
+    return FileResponse(path, media_type="audio/wav", filename=name)
+
+
+@app.delete("/api/conversions/{conv_id}")
+def delete_conversion(conv_id: str):
+    with db.connect() as conn:
+        deleted = conn.execute("DELETE FROM conversions WHERE id=?", (conv_id,)).rowcount
+    if not deleted:
+        raise HTTPException(404, "Conversion not found")
+    (CONVERSIONS_DIR / f"{conv_id}.wav").unlink(missing_ok=True)
+    (CONVERSIONS_DIR / f"{conv_id}_source.wav").unlink(missing_ok=True)
+    return {"ok": True}
 
 
 # ---------- recording studio ----------

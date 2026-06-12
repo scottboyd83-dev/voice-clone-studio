@@ -9,7 +9,8 @@ export const REFERENCE_SCRIPT =
 
 // Mic recorder with a live oscilloscope while recording.
 // Calls onRecorded(blob) with audio/webm when the user stops.
-export default function Recorder({ onRecorded }) {
+// Default hint/over-length warning suit reference clips; pass `hint` to override.
+export default function Recorder({ onRecorded, hint }) {
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState(null);
@@ -98,7 +99,9 @@ export default function Recorder({ onRecorded }) {
         ) : (
           <button className="btn rec recording" onClick={stop}>■ Stop</button>
         )}
-        {recording && elapsed > 12 ? (
+        {hint ? (
+          <span className="hint">{hint}</span>
+        ) : recording && elapsed > 12 ? (
           <span className="hint" style={{ color: "var(--red)" }}>
             Over 12s — the clip will be trimmed and re-transcribed. Shorter is better.
           </span>

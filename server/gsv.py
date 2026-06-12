@@ -97,7 +97,8 @@ def _set_weights(gpt_path: str, sovits_path: str) -> None:
         _loaded["sovits"] = sovits_path
 
 
-def generate(voice: dict, text: str, speed: float, seed: int | None, out_wav: Path) -> int:
+def generate(voice: dict, text: str, speed: float, seed: int | None, out_wav: Path, *,
+             top_k: int = 5, top_p: float = 1.0, temperature: float = 1.0) -> int:
     """Synthesize with a fine-tuned voice. Returns the seed used."""
     model = json.loads(voice["model"])
     ensure_running()
@@ -113,6 +114,9 @@ def generate(voice: dict, text: str, speed: float, seed: int | None, out_wav: Pa
         "prompt_lang": "en",
         "speed_factor": speed,
         "seed": seed,
+        "top_k": top_k,
+        "top_p": top_p,
+        "temperature": temperature,
         "media_type": "wav",
         "text_split_method": "cut5",
         "batch_size": 1,
