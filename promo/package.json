@@ -1,0 +1,22 @@
+{
+  "name": "promo",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render:169": "remotion render src/index.ts promo-16x9 out/voice-clone-studio-promo-16x9.mp4",
+    "render:916": "remotion render src/index.ts promo-9x16 out/voice-clone-studio-promo-9x16.mp4",
+    "music": "cd .. && uv run python promo/make_music.py"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@remotion/cli": "^4.0.475",
+    "@remotion/google-fonts": "^4.0.475",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "remotion": "^4.0.475"
+  }
+}
