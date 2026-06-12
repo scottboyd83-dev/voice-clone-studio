@@ -9,7 +9,10 @@
     "music": "cd .. && uv run python promo/make_music.py",
     "render:169v2": "remotion render src/index.ts promo-16x9-v2 out/voice-clone-studio-promo-v2-16x9.mp4",
     "render:916v2": "remotion render src/index.ts promo-9x16-v2 out/voice-clone-studio-promo-v2-9x16.mp4",
-    "music:v2": "cd .. && uv run python promo/make_music_v2.py"
+    "music:v2": "cd .. && uv run python promo/make_music_v2.py",
+    "render:169v3": "remotion render src/index.ts promo-16x9-v3 out/voice-clone-studio-promo-v3-16x9.mp4",
+    "render:916v3": "remotion render src/index.ts promo-9x16-v3 out/voice-clone-studio-promo-v3-9x16.mp4",
+    "music:v3": "cd .. && uv run python promo/make_music_v3.py"
   },
   "keywords": [],
   "author": "",
