@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voice Clone Studio — Operator's Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0b0d;
+    --panel: #121215;
+    --panel-2: #18181c;
+    --line: #26262c;
+    --line-bright: #3a3a42;
+    --text: #e8e4dc;
+    --text-dim: #8b8778;
+    --text-faint: #55524a;
+    --amber: #f5a524;
+    --amber-soft: rgba(245, 165, 36, 0.14);
+    --amber-glow: rgba(245, 165, 36, 0.35);
+    --green: #5fd068;
+    --red: #e5484d;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+    --serif: "Instrument Serif", Georgia, serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background:
+      radial-gradient(1100px 500px at 70% -10%, rgba(245,165,36,0.06), transparent 60%),
+      var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 56px 28px 80px; }
+
+  /* ---------- masthead ---------- */
+  .kicker {
+    color: var(--amber); letter-spacing: 0.28em; text-transform: uppercase;
+    font-size: 11px; margin-bottom: 14px;
+  }
+  h1 {
+    font-family: var(--serif); font-weight: 400; font-size: clamp(44px, 7vw, 72px);
+    line-height: 1.02; letter-spacing: -0.01em;
+  }
+  h1 .accent { color: var(--amber); font-style: italic; }
+  .standfirst { color: var(--text-dim); max-width: 56ch; margin-top: 18px; }
+  .badges { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+  .badge {
+    border: 1px solid var(--line-bright); padding: 4px 12px; font-size: 11px;
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim);
+    border-radius: 99px;
+  }
+  .badge b { color: var(--green); font-weight: 500; }
+
+  /* ---------- signal path strip ---------- */
+  .sigpath {
+    margin: 48px 0 8px; border: 1px solid var(--line); background: var(--panel);
+    border-radius: 6px; padding: 22px 24px 26px; position: relative; overflow: hidden;
+  }
+  .sigpath::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255,255,255,0.012) 3px 4px);
+  }
+  .panel-label {
+    position: absolute; top: 10px; left: 14px; font-size: 10px; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--text-faint);
+  }
+  .path-row { display: flex; align-items: center; gap: 0; flex-wrap: wrap; margin-top: 18px; }
+  .node {
+    border: 1px solid var(--line-bright); background: var(--panel-2);
+    padding: 10px 16px; border-radius: 4px; text-align: center; min-width: 108px;
+  }
+  .node .nn { font-size: 12px; font-weight: 600; }
+  .node .nd { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+  .node.hot { border-color: var(--amber); box-shadow: 0 0 18px var(--amber-soft); }
+  .node.hot .nn { color: var(--amber); }
+  .conn { flex: 1 1 26px; min-width: 26px; height: 1px; background: var(--line-bright); position: relative; }
+  .conn::after {
+    content: "▸"; position: absolute; right: -3px; top: -10px; color: var(--text-faint); font-size: 11px;
+  }
+
+  /* ---------- step cards ---------- */
+  .steps { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 40px; }
+  @media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
+  .step {
+    border: 1px solid var(--line); background: var(--panel); border-radius: 6px;
+    padding: 24px 24px 22px; position: relative;
+  }
+  .step:hover { border-color: var(--line-bright); }
+  .step .num {
+    position: absolute; top: -14px; right: 18px;
+    font-family: var(--serif); font-size: 56px; font-style: italic; color: var(--amber);
+    opacity: 0.85; text-shadow: 0 0 24px var(--amber-glow); line-height: 1;
+  }
+  .step .tab-chip {
+    display: inline-block; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--amber); border: 1px solid var(--amber); border-radius: 3px;
+    padding: 2px 8px; margin-bottom: 12px; background: var(--amber-soft);
+  }
+  .step h2 { font-family: var(--serif); font-weight: 400; font-size: 26px; margin-bottom: 8px; }
+  .step p { color: var(--text-dim); font-size: 13px; }
+  .step p b { color: var(--text); font-weight: 500; }
+  .tip { margin-top: 12px; font-size: 12px; color: var(--text-faint); border-left: 2px solid var(--amber); padding-left: 10px; }
+  .tip b { color: var(--amber); font-weight: 500; }
+
+  /* mini UI sketches inside cards */
+  .mini { margin-top: 16px; border: 1px solid var(--line); background: var(--panel-2); border-radius: 4px; padding: 12px 14px; }
+  .mini .mrow { display: flex; align-items: center; gap: 10px; }
+  .mini .mrow + .mrow { margin-top: 9px; }
+  .mlabel { font-size: 10px; color: var(--text-faint); letter-spacing: 0.12em; text-transform: uppercase; width: 84px; flex: none; }
+  .mslider { flex: 1; height: 3px; background: var(--line-bright); border-radius: 2px; position: relative; }
+  .mslider i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--amber); border-radius: 2px; }
+  .mslider em { position: absolute; top: -4px; width: 11px; height: 11px; border-radius: 50%; background: var(--text); }
+  .mbtn { font-family: var(--mono); font-size: 11px; padding: 5px 14px; border-radius: 3px; border: 1px solid var(--line-bright); color: var(--text-dim); background: transparent; }
+  .mbtn.primary { background: var(--amber); border-color: var(--amber); color: #0b0b0d; font-weight: 600; }
+  .mbtn.rec { color: var(--red); border-color: var(--red); }
+  .wave { display: flex; align-items: center; gap: 3px; height: 26px; flex: 1; }
+  .wave i { width: 3px; background: var(--amber); border-radius: 2px; opacity: 0.85; }
+  .wave.red i { background: var(--red); }
+  .wave.green i { background: var(--green); }
+  .gauge { display: flex; gap: 4px; flex: 1; }
+  .gauge i { height: 8px; flex: 1; background: var(--line-bright); border-radius: 1px; }
+  .gauge i.on { background: var(--green); }
+  .gauge i.warn { background: var(--amber); }
+  .mled { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); flex: none; }
+  .mtext { font-size: 11px; color: var(--text-dim); }
+  .mstar { color: var(--amber); }
+
+  /* ---------- footer notes ---------- */
+  .notes { margin-top: 44px; border-top: 1px solid var(--line); padding-top: 26px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 22px; }
+  @media (max-width: 760px) { .notes { grid-template-columns: 1fr; } }
+  .note h3 { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--amber); margin-bottom: 8px; font-weight: 500; }
+  .note p { font-size: 12px; color: var(--text-dim); }
+  .colophon { margin-top: 48px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    color: var(--text-faint); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; }
+  .colophon a { color: var(--amber); text-decoration: none; }
+
+  @media print {
+    body { background: #0b0b0d !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .step { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="kicker">Operator's Guide · 5 minutes</div>
+  <h1>Voice <span class="accent">Clone</span> Studio</h1>
+  <p class="standfirst">Clone a voice in ten seconds, fine-tune it overnight, then make it
+  say anything — typed or performed. Every sample, model and dataset lives on this Mac.</p>
+  <div class="badges">
+    <span class="badge"><b>●</b> 100% on-device</span>
+    <span class="badge">No cloud · No accounts</span>
+    <span class="badge">Apple Silicon (MPS)</span>
+    <span class="badge">localhost:5173</span>
+  </div>
+
+  <div class="sigpath">
+    <span class="panel-label">The signal path — six tabs, left to right</span>
+    <div class="path-row">
+      <div class="node hot"><div class="nn">Voices</div><div class="nd">clone in 10s</div></div>
+      <div class="conn"></div>
+      <div class="node"><div class="nn">Studio</div><div class="nd">record dataset</div></div>
+      <div class="conn"></div>
+      <div class="node"><div class="nn">Train</div><div class="nd">overnight ★</div></div>
+      <div class="conn"></div>
+      <div class="node hot"><div class="nn">Generate</div><div class="nd">text → speech</div></div>
+      <div class="conn"></div>
+      <div class="node hot"><div class="nn">Convert</div><div class="nd">speech → speech</div></div>
+      <div class="conn"></div>
+      <div class="node"><div class="nn">History</div><div class="nd">every take</div></div>
+    </div>
+  </div>
+
+  <div class="steps">
+
+    <div class="step">
+      <span class="num">01</span>
+      <span class="tab-chip">Voices</span>
+      <h2>Clone a voice instantly</h2>
+      <p><b>New Voice</b> → read the on-screen script (~10 seconds) or upload a clean clip.
+      That's it — the voice is ready to speak. No training.</p>
+      <div class="mini">
+        <div class="mrow"><button class="mbtn rec">● Record</button>
+          <div class="wave"><i style="height:8px"></i><i style="height:18px"></i><i style="height:12px"></i><i style="height:22px"></i><i style="height:10px"></i><i style="height:16px"></i><i style="height:24px"></i><i style="height:9px"></i><i style="height:14px"></i><i style="height:20px"></i><i style="height:7px"></i><i style="height:17px"></i></div>
+          <span class="mtext">0:09</span></div>
+      </div>
+      <div class="tip"><b>Tip</b> — quiet room, normal voice, ~20cm from the mic. Clips are trimmed to 12s; short and clean beats long and noisy.</div>
+    </div>
+
+    <div class="step">
+      <span class="num">02</span>
+      <span class="tab-chip">Studio</span>
+      <h2>Record a training dataset</h2>
+      <p>Read the <b>90 scripted prompts</b> — each take passes a live quality gate
+      (clipping, noise, level). Aim for <b>10–15 minutes</b> of kept takes, then hit
+      <b>Build dataset</b>.</p>
+      <div class="mini">
+        <div class="mrow"><span class="mlabel">Quality</span>
+          <div class="gauge"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="warn"></i><i></i></div>
+          <span class="mtext">pass</span></div>
+        <div class="mrow"><span class="mlabel">Progress</span><span class="mtext">42 / 90 prompts · 8m 12s kept</span></div>
+      </div>
+      <div class="tip"><b>Tip</b> — every take is transcript-verified by Whisper during the build; sloppy reads get excluded automatically.</div>
+    </div>
+
+    <div class="step">
+      <span class="num">03</span>
+      <span class="tab-chip">Train</span>
+      <h2>Fine-tune overnight</h2>
+      <p>Pick your dataset, start the run, go to bed. Training is CPU-based
+      (<b>~3–5 hours</b> for a 10-minute dataset). A <b class="mstar">★ fine-tuned voice</b>
+      appears in the library when it's done.</p>
+      <div class="mini">
+        <div class="mrow"><span class="mlabel">SoVITS</span><div class="mslider"><i style="width:100%"></i></div><span class="mtext">8/8</span></div>
+        <div class="mrow"><span class="mlabel">GPT</span><div class="mslider"><i style="width:60%"></i></div><span class="mtext">9/15</span></div>
+      </div>
+      <div class="tip"><b>Tip</b> — instant clones nail timbre; fine-tunes add your cadence, habits and rhythm. If quality disappoints: more/cleaner data first, epochs second.</div>
+    </div>
+
+    <div class="step">
+      <span class="num">04</span>
+      <span class="tab-chip">Generate</span>
+      <h2>Type → speech</h2>
+      <p>Pick a voice, type anything (long passages are chunked and stitched), hit
+      <b>Generate</b>. Instant voices get speed / quality / adherence sliders; ★ voices
+      get top-k / top-p / temperature.</p>
+      <div class="mini">
+        <div class="mrow"><span class="mlabel">Speed</span><div class="mslider"><i style="width:50%"></i><em style="left:48%"></em></div><span class="mtext">1.00×</span></div>
+        <div class="mrow"><span class="mlabel">Adherence</span><div class="mslider"><i style="width:35%"></i><em style="left:33%"></em></div><span class="mtext">2.0</span></div>
+        <div class="mrow"><button class="mbtn primary">Generate ▸</button><span class="mtext">seed 184022 · lock it to reproduce</span></div>
+      </div>
+      <div class="tip"><b>Tip</b> — like a take? <b>Lock its seed</b> and re-render variations of the text with the same delivery character.</div>
+    </div>
+
+    <div class="step">
+      <span class="num">05</span>
+      <span class="tab-chip">Convert</span>
+      <h2>Perform → any voice</h2>
+      <p>The voice changer. Record or upload <b>any speech</b> (up to 5 min) and re-render
+      it in a library voice. Your wording, pacing and emotion carry through — only the
+      timbre is swapped. <b>Singing mode</b> keeps the melody.</p>
+      <div class="mini">
+        <div class="mrow"><span class="mlabel">You</span>
+          <div class="wave red"><i style="height:10px"></i><i style="height:20px"></i><i style="height:14px"></i><i style="height:24px"></i><i style="height:8px"></i><i style="height:18px"></i></div>
+          <span class="mtext">→</span>
+          <div class="wave"><i style="height:10px"></i><i style="height:20px"></i><i style="height:14px"></i><i style="height:24px"></i><i style="height:8px"></i><i style="height:18px"></i></div>
+          <span class="mtext">Scott</span></div>
+      </div>
+      <div class="tip"><b>Tip</b> — when Generate gives the right words but the wrong read, perform the line yourself here instead. You direct; the model only swaps the voice.</div>
+    </div>
+
+    <div class="step">
+      <span class="num">06</span>
+      <span class="tab-chip">History</span>
+      <h2>Every take, reproducible</h2>
+      <p>Each generation is stored with its <b>exact settings and seed</b>. Replay,
+      download wav/mp3, filter by voice, or pull a seed back into Generate to make a
+      result repeatable.</p>
+      <div class="mini">
+        <div class="mrow"><span class="mled"></span><span class="mtext">"Welcome to the show…" · Scott · 12.4s · seed 184022</span></div>
+        <div class="mrow"><span class="mled" style="background:var(--amber); box-shadow:0 0 8px var(--amber)"></span><span class="mtext">"Phase four is live." · ★ Scott (fine-tuned) · 3.1s</span></div>
+      </div>
+      <div class="tip"><b>Tip</b> — nothing leaves the machine. Deleting a voice removes its generations too.</div>
+    </div>
+
+  </div>
+
+  <div class="notes">
+    <div class="note">
+      <h3>First-run timing</h3>
+      <p>Engines load lazily: first generation ~30s, first conversion ~1 min. After that,
+      seconds. One-time model downloads happen on first ever use.</p>
+    </div>
+    <div class="note">
+      <h3>Three engines, one library</h3>
+      <p>Instant clones (F5-TTS), fine-tuned clones (GPT-SoVITS), and the voice changer
+      (Seed-VC) all share the same voice library.</p>
+    </div>
+    <div class="note">
+      <h3>Start it up</h3>
+      <p><span style="color:var(--amber)">./run.sh</span> then open
+      localhost:5173. One-time engine setups: <span style="color:var(--amber)">scripts/setup_gptsovits.sh</span>,
+      <span style="color:var(--amber)">scripts/setup_seedvc.sh</span>.</p>
+    </div>
+  </div>
+
+  <div class="colophon">
+    <span>Voice Clone Studio · Operator's Guide</span>
+    <span>See <a href="architecture.html">System Architecture</a> for how it works inside</span>
+  </div>
+
+</div>
+</body>
+</html>

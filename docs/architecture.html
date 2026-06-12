@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voice Clone Studio — System Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0b0d;
+    --panel: #121215;
+    --panel-2: #18181c;
+    --line: #26262c;
+    --line-bright: #3a3a42;
+    --text: #e8e4dc;
+    --text-dim: #8b8778;
+    --text-faint: #55524a;
+    --amber: #f5a524;
+    --amber-soft: rgba(245, 165, 36, 0.14);
+    --green: #5fd068;
+    --green-soft: rgba(95, 208, 104, 0.12);
+    --red: #e5484d;
+    --red-soft: rgba(229, 72, 77, 0.12);
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+    --serif: "Instrument Serif", Georgia, serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background:
+      radial-gradient(1100px 500px at 30% -10%, rgba(245,165,36,0.05), transparent 60%),
+      var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 52px 28px 80px; }
+
+  .kicker { color: var(--amber); letter-spacing: 0.28em; text-transform: uppercase; font-size: 11px; margin-bottom: 12px; }
+  h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(38px, 6vw, 60px); line-height: 1.05; }
+  h1 .accent { color: var(--amber); font-style: italic; }
+  .standfirst { color: var(--text-dim); max-width: 64ch; margin-top: 14px; }
+
+  /* ---------- legend ---------- */
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; margin: 26px 0 36px; }
+  .leg { display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); }
+  .swatch { width: 26px; height: 0; border-top: 3px solid; border-radius: 2px; }
+  .leg.gen .swatch { border-color: var(--amber); }
+  .leg.train .swatch { border-color: var(--red); border-top-style: dashed; }
+  .leg.conv .swatch { border-color: var(--green); }
+
+  /* ---------- diagram layers ---------- */
+  .layer { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 22px 24px; position: relative; }
+  .layer-label { position: absolute; top: -9px; left: 16px; background: var(--bg); padding: 0 10px;
+    font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--amber); }
+  .layer-sub { position: absolute; top: -8px; right: 16px; background: var(--bg); padding: 0 10px;
+    font-size: 10px; color: var(--text-faint); }
+
+  .drop { display: flex; justify-content: center; gap: 130px; height: 40px; align-items: stretch; }
+  .pipe { width: 0; border-left: 1px solid var(--line-bright); position: relative; }
+  .pipe::after { content: "▾"; position: absolute; bottom: -6px; left: -5px; color: var(--text-faint); font-size: 11px; }
+  .pipe .plabel { position: absolute; top: 9px; left: 9px; white-space: nowrap; font-size: 10px; color: var(--text-faint); }
+  .pipe.gen { border-color: var(--amber); } .pipe.gen::after { color: var(--amber); }
+  .pipe.train { border-left-style: dashed; border-color: var(--red); } .pipe.train::after { color: var(--red); }
+  .pipe.conv { border-color: var(--green); } .pipe.conv::after { color: var(--green); }
+
+  /* browser layer */
+  .tabstrip { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+  .uitab { border: 1px solid var(--line-bright); border-radius: 3px; padding: 5px 13px; font-size: 11px; color: var(--text-dim); background: var(--panel-2); }
+  .uitab.gen { border-color: var(--amber); color: var(--amber); background: var(--amber-soft); }
+  .uitab.train { border-color: var(--red); color: var(--red); background: var(--red-soft); }
+  .uitab.conv { border-color: var(--green); color: var(--green); background: var(--green-soft); }
+
+  /* api layer */
+  .modgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 6px; }
+  @media (max-width: 860px) { .modgrid { grid-template-columns: repeat(2, 1fr); } }
+  .mod { border: 1px solid var(--line); background: var(--panel-2); border-radius: 4px; padding: 10px 12px; }
+  .mod .mn { font-size: 12px; font-weight: 600; }
+  .mod .md { font-size: 10.5px; color: var(--text-dim); margin-top: 2px; line-height: 1.45; }
+  .mod .ports { margin-top: 7px; display: flex; gap: 5px; }
+  .port { width: 7px; height: 7px; border-radius: 50%; }
+  .port.gen { background: var(--amber); } .port.train { background: var(--red); } .port.conv { background: var(--green); }
+
+  /* engine rack */
+  .rack { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  @media (max-width: 860px) { .rack { grid-template-columns: 1fr; } }
+  .unit { border: 1px solid var(--line); border-radius: 6px; background: var(--panel); padding: 20px 18px 16px; position: relative; }
+  .unit.gen-u { border-top: 3px solid var(--amber); }
+  .unit.train-u { border-top: 3px solid var(--red); }
+  .unit.conv-u { border-top: 3px solid var(--green); }
+  .unit h3 { font-family: var(--serif); font-weight: 400; font-size: 24px; }
+  .unit .role { font-size: 11px; color: var(--text-dim); margin: 2px 0 10px; }
+  .envchip { display: inline-block; font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase;
+    border: 1px solid var(--line-bright); border-radius: 99px; padding: 2px 9px; color: var(--text-faint); margin: 0 4px 10px 0; }
+  .models { border-top: 1px solid var(--line); margin-top: 6px; padding-top: 10px; }
+  .models .mh { font-size: 9.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 7px; }
+  .mrow { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; border-bottom: 1px dotted var(--line); font-size: 11.5px; }
+  .mrow:last-child { border-bottom: none; }
+  .mrow .mname { color: var(--text); }
+  .mrow .mjob { color: var(--text-faint); font-size: 10.5px; text-align: right; }
+  .unit .foot { margin-top: 10px; font-size: 10.5px; color: var(--text-dim); border-left: 2px solid var(--line-bright); padding-left: 9px; }
+  .gen-u .foot { border-color: var(--amber); }
+  .train-u .foot { border-color: var(--red); }
+  .conv-u .foot { border-color: var(--green); }
+
+  /* storage layer */
+  .storerow { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+  .store { border: 1px solid var(--line); background: var(--panel-2); border-radius: 4px; padding: 8px 13px; font-size: 11px; }
+  .store b { color: var(--amber); font-weight: 500; }
+  .store .sd { color: var(--text-faint); font-size: 10px; }
+
+  /* hardware rail */
+  .hw { margin-top: 40px; border: 1px dashed var(--line-bright); border-radius: 6px; padding: 16px 22px;
+    display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap; align-items: center; }
+  .hw .hwitem { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); }
+  .hw .hwitem b { color: var(--text); font-weight: 500; }
+  .led { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 9px var(--green); margin-right: 7px; vertical-align: 1px; }
+
+  /* journeys */
+  .journeys { margin-top: 44px; }
+  h2.sect { font-family: var(--serif); font-weight: 400; font-size: 30px; margin-bottom: 16px; }
+  h2.sect .accent { color: var(--amber); font-style: italic; }
+  .journey { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; border: 1px solid var(--line);
+    background: var(--panel); border-radius: 6px; padding: 14px 18px; margin-bottom: 12px; }
+  .jtag { flex: none; width: 130px; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 600; }
+  .journey.gen .jtag { color: var(--amber); }
+  .journey.train .jtag { color: var(--red); }
+  .journey.conv .jtag { color: var(--green); }
+  .jstep { border: 1px solid var(--line-bright); background: var(--panel-2); border-radius: 3px; padding: 4px 11px; font-size: 11px; color: var(--text); }
+  .jarrow { color: var(--text-faint); font-size: 11px; }
+  .jnote { width: 100%; font-size: 10.5px; color: var(--text-faint); margin-top: 4px; padding-left: 138px; }
+  @media (max-width: 860px) { .jnote { padding-left: 0; } }
+
+  .colophon { margin-top: 48px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    color: var(--text-faint); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; }
+  .colophon a { color: var(--amber); text-decoration: none; }
+
+  @media print {
+    body { background: #0b0b0d !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .layer, .unit, .journey { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="kicker">System Architecture</div>
+  <h1>How the <span class="accent">Studio</span> works</h1>
+  <p class="standfirst">A React control surface, one FastAPI core, and three isolated ML engines —
+  each in its own Python environment so their dependencies never collide. Everything below the
+  browser runs on this machine; no audio, text or model ever leaves it.</p>
+
+  <div class="legend">
+    <span class="leg gen"><span class="swatch"></span> Generate — text → speech</span>
+    <span class="leg train"><span class="swatch"></span> Train — dataset → fine-tuned voice</span>
+    <span class="leg conv"><span class="swatch"></span> Convert — speech → speech</span>
+  </div>
+
+  <!-- LAYER 1: BROWSER -->
+  <div class="layer">
+    <span class="layer-label">Control surface</span>
+    <span class="layer-sub">React + Vite · localhost:5173</span>
+    <div class="tabstrip">
+      <span class="uitab">Voices</span>
+      <span class="uitab train">Studio</span>
+      <span class="uitab train">Train</span>
+      <span class="uitab gen">Generate</span>
+      <span class="uitab conv">Convert</span>
+      <span class="uitab">History</span>
+    </div>
+  </div>
+
+  <div class="drop">
+    <div class="pipe gen"><span class="plabel">POST /api/generate</span></div>
+    <div class="pipe train"><span class="plabel">POST /api/train</span></div>
+    <div class="pipe conv"><span class="plabel">POST /api/convert</span></div>
+  </div>
+
+  <!-- LAYER 2: API CORE -->
+  <div class="layer">
+    <span class="layer-label">API core</span>
+    <span class="layer-sub">FastAPI · uv · Python 3.11 · localhost:8000</span>
+    <div class="modgrid">
+      <div class="mod"><div class="mn">app.py</div><div class="md">All routes: voices, generate, convert, studio, dataset, train, history</div>
+        <div class="ports"><span class="port gen"></span><span class="port train"></span><span class="port conv"></span></div></div>
+      <div class="mod"><div class="mn">engine.py</div><div class="md">F5-TTS singleton on MPS + Whisper auto-transcription</div>
+        <div class="ports"><span class="port gen"></span></div></div>
+      <div class="mod"><div class="mn">gsv.py · finetune.py</div><div class="md">GPT-SoVITS inference proxy + training orchestration</div>
+        <div class="ports"><span class="port gen"></span><span class="port train"></span></div></div>
+      <div class="mod"><div class="mn">seedvc.py</div><div class="md">Seed-VC worker manager — JSON-lines over stdio</div>
+        <div class="ports"><span class="port conv"></span></div></div>
+      <div class="mod"><div class="mn">dataset.py</div><div class="md">Takes → loudness-normalised 32kHz → Whisper-verified filelist</div>
+        <div class="ports"><span class="port train"></span></div></div>
+      <div class="mod"><div class="mn">quality.py</div><div class="md">Per-take gate: clipping %, SNR estimate, level</div>
+        <div class="ports"><span class="port train"></span></div></div>
+      <div class="mod"><div class="mn">audio.py</div><div class="md">ffmpeg conversion: webm/m4a/mp3 → PCM wav, mp3 export</div>
+        <div class="ports"><span class="port gen"></span><span class="port train"></span><span class="port conv"></span></div></div>
+      <div class="mod"><div class="mn">db.py</div><div class="md">SQLite — voices · takes · generations · conversions</div>
+        <div class="ports"><span class="port gen"></span><span class="port train"></span><span class="port conv"></span></div></div>
+    </div>
+  </div>
+
+  <div class="drop">
+    <div class="pipe gen"><span class="plabel">in-process (MPS)</span></div>
+    <div class="pipe train"><span class="plabel">subprocess → :9880</span></div>
+    <div class="pipe conv"><span class="plabel">stdio worker</span></div>
+  </div>
+
+  <!-- LAYER 3: ENGINE RACK -->
+  <div class="rack">
+
+    <div class="unit gen-u">
+      <h3>F5-TTS</h3>
+      <div class="role">Instant cloning — zero-shot text-to-speech from a 10s reference</div>
+      <span class="envchip">in-process · MPS</span><span class="envchip">24 kHz out</span>
+      <div class="models">
+        <div class="mh">Models</div>
+        <div class="mrow"><span class="mname">F5-TTS Base</span><span class="mjob">flow-matching TTS, 336M</span></div>
+        <div class="mrow"><span class="mname">Vocos</span><span class="mjob">mel → waveform vocoder</span></div>
+        <div class="mrow"><span class="mname">Whisper</span><span class="mjob">auto-transcribe uploads</span></div>
+      </div>
+      <div class="foot">Paces output by the reference's chars-per-second — reference transcript
+      must exactly match the audio (the app enforces this).</div>
+    </div>
+
+    <div class="unit train-u">
+      <h3>GPT-SoVITS v2</h3>
+      <div class="role">Fine-tuning — a dedicated model of one voice, trained on your dataset</div>
+      <span class="envchip">isolated venv · py3.10</span><span class="envchip">train: CPU · infer: MPS</span>
+      <div class="models">
+        <div class="mh">Models</div>
+        <div class="mrow"><span class="mname">s1 GPT</span><span class="mjob">AR semantic-token model</span></div>
+        <div class="mrow"><span class="mname">s2 SoVITS</span><span class="mjob">VITS speech decoder</span></div>
+        <div class="mrow"><span class="mname">cn-HuBERT</span><span class="mjob">SSL speech features</span></div>
+        <div class="mrow"><span class="mname">RoBERTa</span><span class="mjob">text features</span></div>
+      </div>
+      <div class="foot">~3–5h CPU for a 10-min dataset (8 SoVITS + 15 GPT epochs). Inference via
+      its api_v2 server on :9880, kept resident after first use.</div>
+    </div>
+
+    <div class="unit conv-u">
+      <h3>Seed-VC</h3>
+      <div class="role">Voice changer — zero-shot speech-to-speech, no training, no transcript</div>
+      <span class="envchip">isolated venv · py3.10</span><span class="envchip">MPS · 22/44.1 kHz</span>
+      <div class="models">
+        <div class="mh">Models</div>
+        <div class="mrow"><span class="mname">DiT (uvit-whisper-small)</span><span class="mjob">diffusion converter, 98M</span></div>
+        <div class="mrow"><span class="mname">DiT f0 44k</span><span class="mjob">singing variant</span></div>
+        <div class="mrow"><span class="mname">Whisper-small encoder</span><span class="mjob">content features</span></div>
+        <div class="mrow"><span class="mname">CAMPPlus</span><span class="mjob">target speaker embedding</span></div>
+        <div class="mrow"><span class="mname">BigVGAN 22k / 44k</span><span class="mjob">vocoders</span></div>
+        <div class="mrow"><span class="mname">RMVPE</span><span class="mjob">pitch extraction (singing)</span></div>
+      </div>
+      <div class="foot">Separates <em>what</em> was said (Whisper features) from <em>who</em> said it
+      (CAMPPlus), then re-renders the content in the target timbre.</div>
+    </div>
+
+  </div>
+
+  <div class="drop">
+    <div class="pipe gen"></div>
+    <div class="pipe train"></div>
+    <div class="pipe conv"></div>
+  </div>
+
+  <!-- LAYER 4: STORAGE -->
+  <div class="layer">
+    <span class="layer-label">Storage — all local, gitignored</span>
+    <span class="layer-sub">data/ + SQLite studio.db</span>
+    <div class="storerow">
+      <span class="store"><b>voices/</b> <span class="sd">reference clips</span></span>
+      <span class="store"><b>takes/</b> <span class="sd">studio recordings</span></span>
+      <span class="store"><b>datasets/</b> <span class="sd">training filelists</span></span>
+      <span class="store"><b>models/</b> <span class="sd">fine-tuned weights</span></span>
+      <span class="store"><b>generations/</b> <span class="sd">TTS output</span></span>
+      <span class="store"><b>conversions/</b> <span class="sd">voice-changer output + sources</span></span>
+      <span class="store"><b>studio.db</b> <span class="sd">metadata, settings, seeds</span></span>
+    </div>
+  </div>
+
+  <div class="hw">
+    <span class="hwitem"><span class="led"></span><b>Apple M4 Pro</b> · 24 GB unified memory</span>
+    <span class="hwitem">Acceleration: <b>MPS</b> (inference) · <b>CPU</b> (training)</span>
+    <span class="hwitem">Network: <b>none</b> after one-time model downloads</span>
+  </div>
+
+  <!-- JOURNEYS -->
+  <div class="journeys">
+    <h2 class="sect">Three journeys through the <span class="accent">stack</span></h2>
+
+    <div class="journey gen">
+      <span class="jtag">Generate</span>
+      <span class="jstep">text + voice</span><span class="jarrow">▸</span>
+      <span class="jstep">app.py</span><span class="jarrow">▸</span>
+      <span class="jstep">F5-TTS or GPT-SoVITS</span><span class="jarrow">▸</span>
+      <span class="jstep">wav + seed</span><span class="jarrow">▸</span>
+      <span class="jstep">generations/ + History</span>
+      <span class="jnote">Instant voices synthesize in-process; ★ fine-tuned voices proxy to the GPT-SoVITS api_v2 server with top-k / top-p / temperature.</span>
+    </div>
+
+    <div class="journey train">
+      <span class="jtag">Train</span>
+      <span class="jstep">90 prompts</span><span class="jarrow">▸</span>
+      <span class="jstep">quality gate</span><span class="jarrow">▸</span>
+      <span class="jstep">Whisper verify</span><span class="jarrow">▸</span>
+      <span class="jstep">s2 + s1 training</span><span class="jarrow">▸</span>
+      <span class="jstep">★ voice in library</span>
+      <span class="jnote">Takes are loudness-normalised, transcript-checked (score &lt; 0.6 excluded), then trained overnight on CPU in the isolated venv.</span>
+    </div>
+
+    <div class="journey conv">
+      <span class="jtag">Convert</span>
+      <span class="jstep">your performance</span><span class="jarrow">▸</span>
+      <span class="jstep">app.py</span><span class="jarrow">▸</span>
+      <span class="jstep">Seed-VC worker</span><span class="jarrow">▸</span>
+      <span class="jstep">same words, new timbre</span><span class="jarrow">▸</span>
+      <span class="jstep">conversions/</span>
+      <span class="jnote">Target = any library voice's 10s reference clip. Pacing and emotion survive; singing mode adds pitch tracking at 44.1 kHz.</span>
+    </div>
+  </div>
+
+  <div class="colophon">
+    <span>Voice Clone Studio · System Architecture</span>
+    <span>New here? Start with the <a href="user-guide.html">Operator's Guide</a></span>
+  </div>
+
+</div>
+</body>
+</html>
