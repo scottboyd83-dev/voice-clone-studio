@@ -6,6 +6,7 @@ import TrainPage from "./components/TrainPage.jsx";
 import GeneratePage from "./components/GeneratePage.jsx";
 import ConvertPage from "./components/ConvertPage.jsx";
 import HistoryPage from "./components/HistoryPage.jsx";
+import SupportPage from "./components/SupportPage.jsx";
 
 const TABS = [
   { id: "voices", label: "Voices" },
@@ -14,6 +15,7 @@ const TABS = [
   { id: "generate", label: "Generate" },
   { id: "convert", label: "Convert" },
   { id: "history", label: "History" },
+  { id: "support", label: "Support" },
 ];
 
 export default function App() {
@@ -95,6 +97,7 @@ export default function App() {
         )}
         {tab === "convert" && <ConvertPage voices={voices} />}
         {tab === "history" && <HistoryPage voices={voices} />}
+        {tab === "support" && <SupportPage />}
       </main>
 
       <footer className="colophon">

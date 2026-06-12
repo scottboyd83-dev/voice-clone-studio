@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from . import audio, db, dataset, engine, finetune, gsv, quality, seedvc
-from .paths import CONVERSIONS_DIR, GENERATIONS_DIR, TAKES_DIR, VOICES_DIR
+from .paths import CONVERSIONS_DIR, GENERATIONS_DIR, ROOT, TAKES_DIR, VOICES_DIR
 from .scripts_corpus import SCRIPTS
 
 app = FastAPI(title="Voice Clone Studio")
@@ -39,6 +39,21 @@ def warmup():
     # generation requests queue behind the engine lock until it's ready.
     threading.Thread(target=engine.warmup, daemon=True).start()
     return {"ok": True}
+
+
+# ---------- docs (Support tab serves docs/ as-is via iframe) ----------
+
+DOC_PAGES = {"user-guide.html", "architecture.html"}
+
+
+@app.get("/api/docs/{name}")
+def doc_page(name: str):
+    if name not in DOC_PAGES:
+        raise HTTPException(404, "Doc not found")
+    path = ROOT / "docs" / name
+    if not path.exists():
+        raise HTTPException(404, "Doc not found")
+    return FileResponse(path, media_type="text/html")
 
 
 # ---------- voices ----------
