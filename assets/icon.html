@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<!-- Source for the app icon: rendered headless at 1024x1024 with a
+     transparent default background, then converted to .icns by
+     scripts/make_app.sh -->
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  html, body { margin: 0; background: transparent; }
+  .tile {
+    width: 1024px; height: 1024px; box-sizing: border-box;
+    border-radius: 232px; /* macOS icon corner radius */
+    background:
+      radial-gradient(70% 60% at 50% 28%, rgba(245,165,36,0.16), transparent 70%),
+      linear-gradient(160deg, #1a1a1f 0%, #0b0b0d 60%);
+    border: 6px solid #2c2c33;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+  }
+  .bars { display: flex; align-items: center; gap: 26px; }
+  .bars i {
+    display: block; width: 34px; border-radius: 18px;
+    background: #f5a524;
+    box-shadow: 0 0 60px rgba(245,165,36,0.55);
+  }
+  .dot {
+    position: absolute; top: 96px; right: 110px;
+    width: 56px; height: 56px; border-radius: 50%;
+    background: #e5484d; box-shadow: 0 0 48px rgba(229,72,77,0.8);
+  }
+</style>
+</head>
+<body>
+<div class="tile">
+  <div class="bars">
+    <i style="height:170px"></i>
+    <i style="height:330px"></i>
+    <i style="height:520px"></i>
+    <i style="height:300px"></i>
+    <i style="height:420px"></i>
+    <i style="height:210px"></i>
+    <i style="height:120px"></i>
+  </div>
+  <div class="dot"></div>
+</div>
+</body>
+</html>

@@ -56,20 +56,12 @@ banner "Setting up the voice changer (Seed-VC, ~3GB)"
 banner "Installing the interface"
 (cd frontend && npm install)
 
-# ---- Desktop launcher ----
-LAUNCHER="$HOME/Desktop/Voice Clone Studio.command"
-cat > "$LAUNCHER" <<'EOF'
-#!/bin/zsh
-# Starts Voice Clone Studio and opens it in your browser. Keep this window
-# open while using the app; press Ctrl-C here to stop it.
-cd "$HOME/voice-clone-studio"
-( sleep 6 && open "http://localhost:5173" ) &
-exec ./run.sh
-EOF
-chmod +x "$LAUNCHER"
+# ---- App in /Applications ----
+banner "Creating Voice Clone Studio in your Applications folder"
+./scripts/make_app.sh
 
 banner "Done!"
-echo "Double-click 'Voice Clone Studio' on your Desktop to start the app."
+echo "Open 'Voice Clone Studio' from Applications, Launchpad or Spotlight."
 echo "First speech generation downloads one more model (~1.4GB), one time only."
 echo
 echo "Everything you record stays on this Mac. Clone your own voice — or only"
