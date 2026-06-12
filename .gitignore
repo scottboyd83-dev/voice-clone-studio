@@ -17,3 +17,6 @@ third_party/
 
 # macOS
 .DS_Store
+demo/raw/
+demo/vo/
+demo/*.mp4
