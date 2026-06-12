@@ -102,6 +102,7 @@ export default function App() {
 
       <footer className="colophon">
         <span>All audio stays on this machine</span>
+        <span>Designed &amp; created by Scott Rodham-Boyd</span>
         <span>Phase 4 · Voice changer</span>
       </footer>
     </>

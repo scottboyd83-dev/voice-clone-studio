@@ -370,6 +370,18 @@ export const Outro = ({ total }) => {
       >
         <span style={{ color: C.green }}>$</span> <TypeText text="./run.sh" start={66} cps={16} size={30} />
       </div>
+      <div
+        style={{
+          marginTop: 26,
+          fontFamily: FONTS.mono,
+          fontSize: 21,
+          letterSpacing: "0.14em",
+          color: C.faint,
+          opacity: fadeAt(frame, 100, 16),
+        }}
+      >
+        Designed &amp; created by <span style={{ color: C.dim }}>Scott Rodham-Boyd</span>
+      </div>
     </SceneFrame>
   );
 };
