@@ -15,9 +15,9 @@ const ORDER = [
   [SCENES.outro, Outro],
 ];
 
-export const Promo = () => (
+export const Promo = ({ music = "music.wav" }) => (
   <AbsoluteFill style={{ background: C.bg }}>
-    <Audio src={staticFile("music.wav")} />
+    <Audio src={staticFile(music)} />
     {ORDER.map(([scene, Comp], i) => (
       <Sequence key={i} from={scene.from} durationInFrames={dur(scene)}>
         <Comp total={dur(scene)} />

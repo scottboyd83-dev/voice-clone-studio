@@ -7,5 +7,8 @@ export const Root = () => (
   <>
     <Composition id="promo-16x9" component={Promo} durationInFrames={TOTAL_FRAMES} fps={FPS} width={1920} height={1080} />
     <Composition id="promo-9x16" component={Promo} durationInFrames={TOTAL_FRAMES} fps={FPS} width={1080} height={1920} />
+    {/* v2: same cut, faster & brighter score */}
+    <Composition id="promo-16x9-v2" component={Promo} durationInFrames={TOTAL_FRAMES} fps={FPS} width={1920} height={1080} defaultProps={{ music: "music_v2.wav" }} />
+    <Composition id="promo-9x16-v2" component={Promo} durationInFrames={TOTAL_FRAMES} fps={FPS} width={1080} height={1920} defaultProps={{ music: "music_v2.wav" }} />
   </>
 );
