@@ -165,7 +165,7 @@
     <div class="path-row">
       <div class="node hot"><div class="nn">Voices</div><div class="nd">clone in 10s</div></div>
       <div class="conn"></div>
-      <div class="node"><div class="nn">Studio</div><div class="nd">record dataset</div></div>
+      <div class="node"><div class="nn">Studio</div><div class="nd">record / upload dataset</div></div>
       <div class="conn"></div>
       <div class="node"><div class="nn">Train</div><div class="nd">overnight ★</div></div>
       <div class="conn"></div>
@@ -196,17 +196,20 @@
     <div class="step">
       <span class="num">02</span>
       <span class="tab-chip">Studio</span>
-      <h2>Record a training dataset</h2>
-      <p>Read the <b>90 scripted prompts</b> — each take passes a live quality gate
-      (clipping, noise, level). Aim for <b>10–15 minutes</b> of kept takes, then hit
-      <b>Build dataset</b>.</p>
+      <h2>Build a training dataset</h2>
+      <p>Two ways to gather material — mix them freely. <b>Record</b> the
+      <b>90 scripted prompts</b> (each take passes a live quality gate for clipping,
+      noise and level), or use <b>Upload recordings</b> to bring in existing clean audio.
+      Uploads are split on pauses into short clips and auto-transcribed for you.
+      Aim for <b>10–15 minutes</b> of kept takes, then hit <b>Build dataset</b>.</p>
       <div class="mini">
         <div class="mrow"><span class="mlabel">Quality</span>
           <div class="gauge"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="warn"></i><i></i></div>
           <span class="mtext">pass</span></div>
         <div class="mrow"><span class="mlabel">Progress</span><span class="mtext">42 / 90 prompts · 8m 12s kept</span></div>
+        <div class="mrow"><span class="mlabel">Upload</span><span class="mtext">interview.m4a ▸ 18 clips added</span></div>
       </div>
-      <div class="tip"><b>Tip</b> — every take is transcript-verified by Whisper during the build; sloppy reads get excluded automatically.</div>
+      <div class="tip"><b>Tip</b> — every take is transcript-verified by Whisper during the build; sloppy reads and garbled upload segments get excluded automatically. For uploads, cleaner audio = more usable clips.</div>
     </div>
 
     <div class="step">
