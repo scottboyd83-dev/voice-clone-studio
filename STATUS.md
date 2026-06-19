@@ -45,6 +45,10 @@ server/  (FastAPI, managed by uv, Python 3.11)
               s1_train → register voice; subprocesses into the isolated gsv venv
   dataset.py  kept takes → loudnorm 32kHz mono → Whisper-verify (exclude <0.6,
               flag <0.85) → GPT-SoVITS filelist.list (path|scott|EN|text) + manifest
+  ingest.py   uploaded audio → 32kHz mono → silence-split into 2–14s utterances
+              (ffmpeg silencedetect) → Whisper-transcribe each → quality.analyze →
+              insert as takes (script_id=-1 sentinel = "uploaded"). Background job,
+              same shape as dataset.py; feeds the unchanged dataset/train flow.
   quality.py  per-take gating: clipping %, SNR estimate, level → pass/warn/fail
   scripts_corpus.py  90 prompts (50 Harvard + questions/expressive/numbers/passages)
   db.py       SQLite (data/studio.db): voices (engine='f5'|'gptsovits', model JSON),
@@ -65,7 +69,9 @@ Key flows:
 - **Instant voice**: 8-12s reference + matching transcript → F5-TTS zero-shot.
   CRITICAL INVARIANT: ref transcript must exactly match ref audio (F5-TTS paces
   output by reference chars-per-second). Clips >12s are trimmed + re-transcribed.
-- **Fine-tuned voice**: Studio takes → dataset build → Train tab → ~3-5h CPU train
+- **Fine-tuned voice**: Studio takes (recorded *or* uploaded — Studio tab "Upload
+  recordings" silence-splits + auto-transcribes existing audio into takes) →
+  dataset build → Train tab → ~3-5h CPU train
   (8 SoVITS + 15 GPT epochs for ~10min data) → voice registered with engine
   'gptsovits', weights under data/models/<job>/, generation proxied to api_v2.
 - **Voice changer**: any speech (record/upload, ≤5 min) + target voice's
@@ -92,7 +98,8 @@ Key flows:
 ## Outstanding tasks
 
 **Scott (human, blocking the first real fine-tune):**
-- [ ] Record dataset in Studio tab (~10-15 min of kept takes; 90 prompts ≈ most of it)
+- [ ] Get ~10-15 min of kept takes: record the 90 prompts in Studio, and/or use
+      Studio → "Upload recordings" to ingest existing clean audio (auto-split + transcribed)
 - [ ] Build dataset, then start fine-tune from Train tab (overnight)
 - [ ] A/B fine-tuned vs instant voice in Generate
 

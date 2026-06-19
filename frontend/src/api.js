@@ -44,6 +44,12 @@ export const api = {
     fd.append("audio_file", blob, "take.webm");
     return fetch("/api/studio/takes", { method: "POST", body: fd }).then(check);
   },
+  uploadAudio: (files) => {
+    const fd = new FormData();
+    for (const f of files) fd.append("audio_files", f, f.name);
+    return fetch("/api/studio/uploads", { method: "POST", body: fd }).then(check);
+  },
+  uploadStatus: () => fetch("/api/studio/uploads/status").then(check),
   listTakes: () => fetch("/api/studio/takes").then(check),
   deleteTake: (id) => fetch(`/api/studio/takes/${id}`, { method: "DELETE" }).then(check),
   takeAudioUrl: (id) => `/api/studio/takes/${id}/audio`,

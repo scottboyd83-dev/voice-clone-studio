@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from . import audio, db, dataset, engine, finetune, gsv, quality, seedvc
+from . import audio, db, dataset, engine, finetune, gsv, ingest, quality, seedvc
 from .paths import CONVERSIONS_DIR, GENERATIONS_DIR, ROOT, TAKES_DIR, VOICES_DIR
 from .scripts_corpus import SCRIPTS
 
@@ -454,6 +454,36 @@ def create_take(script_id: int = Form(...), audio_file: UploadFile = File(...)):
         raise HTTPException(500, f"Failed to save take: {e}")
 
 
+@app.post("/api/studio/uploads")
+def upload_audio(audio_files: list[UploadFile] = File(...)):
+    """Ingest one or more existing audio files as training takes (silence-split,
+    transcribed, quality-checked). Runs in the background; poll /uploads/status."""
+    saved: list[tuple[Path, str]] = []
+    try:
+        for uf in audio_files:
+            suffix = Path(uf.filename or "upload").suffix or ".bin"
+            with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+                shutil.copyfileobj(uf.file, tmp)
+            saved.append((Path(tmp.name), Path(uf.filename or "upload").name))
+    except Exception as e:
+        for path, _ in saved:
+            path.unlink(missing_ok=True)
+        raise HTTPException(500, f"Failed to receive upload: {e}")
+
+    try:
+        ingest.start_ingest(saved)
+    except RuntimeError as e:
+        for path, _ in saved:
+            path.unlink(missing_ok=True)
+        raise HTTPException(409, str(e))
+    return {"ok": True, "files": [name for _, name in saved]}
+
+
+@app.get("/api/studio/uploads/status")
+def upload_status():
+    return ingest.status()
+
+
 @app.get("/api/studio/takes")
 def list_takes(script_id: int | None = None):
     q = "SELECT * FROM takes WHERE status='kept'"
@@ -499,7 +529,9 @@ def studio_stats():
     with db.connect() as conn:
         row = conn.execute(
             "SELECT COUNT(*) AS n, COALESCE(SUM(duration_secs),0) AS secs, "
-            "COUNT(DISTINCT script_id) AS scripts FROM takes WHERE status='kept'"
+            # upload takes use script_id < 0; exclude them from prompt coverage
+            "COUNT(DISTINCT CASE WHEN script_id >= 0 THEN script_id END) AS scripts "
+            "FROM takes WHERE status='kept'"
         ).fetchone()
     return {"takes": row["n"], "total_secs": row["secs"],
             "scripts_covered": row["scripts"], "scripts_total": len(SCRIPTS)}

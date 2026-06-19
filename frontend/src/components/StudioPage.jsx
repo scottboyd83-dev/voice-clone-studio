@@ -60,7 +60,7 @@ export default function StudioPage() {
     <>
       <h2 className="page-title">Recording Studio</h2>
       <p className="page-sub">
-        Read prompts, pass the quality check, build a training dataset. Aim for ~{GOAL_MINS} minutes —
+        Read prompts or upload existing recordings, build a training dataset. Aim for ~{GOAL_MINS} minutes —
         that's the sweet spot for fine-tuning. Multiple takes of the same prompt all count.
       </p>
 
@@ -110,6 +110,7 @@ export default function StudioPage() {
         </div>
       )}
 
+      <UploadPanel onChanged={refresh} />
       <DatasetPanel stats={stats} />
       <RecentTakes onChanged={refresh} />
     </>
@@ -142,6 +143,80 @@ function TakeReview({ take, onKeep, onRetake }) {
         </button>
         <button className="btn" onClick={onRetake}>Retake</button>
       </div>
+    </div>
+  );
+}
+
+function UploadPanel({ onChanged }) {
+  const [files, setFiles] = useState([]);
+  const [job, setJob] = useState(null);
+  const [error, setError] = useState(null);
+  const inputRef = useRef(null);
+  const timer = useRef(null);
+
+  const poll = () => api.uploadStatus().then((s) => {
+    setJob(s);
+    if (s.state !== "running" && timer.current) {
+      clearInterval(timer.current);
+      timer.current = null;
+      onChanged(); // refresh stats + takes once ingestion finishes
+    }
+  }).catch(() => {});
+
+  useEffect(() => {
+    poll();
+    return () => timer.current && clearInterval(timer.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const upload = async () => {
+    setError(null);
+    try {
+      await api.uploadAudio(files);
+      setFiles([]);
+      if (inputRef.current) inputRef.current.value = "";
+      timer.current = setInterval(poll, 1500);
+      poll();
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  const running = job?.state === "running";
+
+  return (
+    <div className="panel" style={{ marginTop: 18 }}>
+      <span className="panel-label">Upload recordings</span>
+      <p className="hint" style={{ marginTop: 0, marginBottom: 12 }}>
+        Already have clean recordings of your voice? Upload them instead of (or alongside)
+        reading prompts. Each file is split on pauses into short clips, transcribed
+        automatically, and added to your takes. WAV, MP3, M4A, FLAC, etc.
+      </p>
+      <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
+        <input ref={inputRef} type="file" accept="audio/*" multiple disabled={running}
+               onChange={(e) => setFiles(Array.from(e.target.files || []))} />
+        <button className="btn primary" onClick={upload} disabled={running || files.length === 0}>
+          {running ? "Processing…" : `Upload ${files.length || ""} file${files.length === 1 ? "" : "s"} ▸`}
+        </button>
+      </div>
+
+      {running && (
+        <div style={{ marginTop: 14 }}>
+          <div className="progress-track">
+            <div className="progress-fill" style={{ width: `${(job.progress * 100).toFixed(0)}%` }} />
+          </div>
+          <div className="hint" style={{ marginTop: 6 }}>
+            {job.message}{job.added > 0 ? ` · ${job.added} clip(s) so far` : ""}
+          </div>
+        </div>
+      )}
+      {job?.state === "done" && !running && (
+        <div className="hint" style={{ marginTop: 10, color: "var(--green)" }}>
+          ✓ {job.message}. Build the dataset below when you're ready.
+        </div>
+      )}
+      {job?.state === "error" && <div className="error-bar">{job.message}</div>}
+      {error && <div className="error-bar">{error}</div>}
     </div>
   );
 }
@@ -264,7 +339,7 @@ function RecentTakes({ onChanged }) {
           <div className="top">
             <div className="gen-text">“{t.text}”</div>
             <div className="meta">
-              {t.duration_secs?.toFixed(1)}s · {t.metrics?.level}
+              {t.script_id < 0 ? "uploaded · " : ""}{t.duration_secs?.toFixed(1)}s · {t.metrics?.level}
               {t.verify_score != null && ` · verify ${(t.verify_score * 100).toFixed(0)}%`}
             </div>
           </div>
