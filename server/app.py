@@ -53,7 +53,8 @@ def doc_page(name: str):
     path = ROOT / "docs" / name
     if not path.exists():
         raise HTTPException(404, "Doc not found")
-    return FileResponse(path, media_type="text/html")
+    # no-cache → browser revalidates each load, so doc edits show without a hard refresh
+    return FileResponse(path, media_type="text/html", headers={"Cache-Control": "no-cache"})
 
 
 # ---------- voices ----------
