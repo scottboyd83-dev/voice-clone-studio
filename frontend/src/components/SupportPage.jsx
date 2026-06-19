@@ -9,6 +9,9 @@ const DOCS = [
 
 export default function SupportPage() {
   const [doc, setDoc] = useState(DOCS[0].file);
+  // Cache-bust the iframe so doc edits always load fresh (iframes cache aggressively).
+  const [bust, setBust] = useState(() => Date.now());
+  const select = (file) => { setDoc(file); setBust(Date.now()); };
 
   return (
     <>
@@ -19,14 +22,14 @@ export default function SupportPage() {
             <button
               key={d.file}
               className={`btn small ${doc === d.file ? "primary" : ""}`}
-              onClick={() => setDoc(d.file)}
+              onClick={() => select(d.file)}
             >
               {d.label}
             </button>
           ))}
           <a
             className="btn small"
-            href={`/api/docs/${doc}`}
+            href={`/api/docs/${doc}?v=${bust}`}
             target="_blank"
             rel="noreferrer"
             style={{ textDecoration: "none" }}
@@ -37,8 +40,8 @@ export default function SupportPage() {
       </div>
 
       <iframe
-        key={doc}
-        src={`/api/docs/${doc}`}
+        key={`${doc}-${bust}`}
+        src={`/api/docs/${doc}?v=${bust}`}
         title="Voice Clone Studio documentation"
         style={{
           width: "100%",

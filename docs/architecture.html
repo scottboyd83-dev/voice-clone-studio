@@ -192,6 +192,8 @@
         <div class="ports"><span class="port conv"></span></div></div>
       <div class="mod"><div class="mn">dataset.py</div><div class="md">Takes → loudness-normalised 32kHz → Whisper-verified filelist</div>
         <div class="ports"><span class="port train"></span></div></div>
+      <div class="mod"><div class="mn">ingest.py</div><div class="md">Uploaded audio → silence-split → Whisper-transcribed → takes</div>
+        <div class="ports"><span class="port train"></span></div></div>
       <div class="mod"><div class="mn">quality.py</div><div class="md">Per-take gate: clipping %, SNR estimate, level</div>
         <div class="ports"><span class="port train"></span></div></div>
       <div class="mod"><div class="mn">audio.py</div><div class="md">ffmpeg conversion: webm/m4a/mp3 → PCM wav, mp3 export</div>
@@ -270,7 +272,7 @@
     <span class="layer-sub">data/ + SQLite studio.db</span>
     <div class="storerow">
       <span class="store"><b>voices/</b> <span class="sd">reference clips</span></span>
-      <span class="store"><b>takes/</b> <span class="sd">studio recordings</span></span>
+      <span class="store"><b>takes/</b> <span class="sd">recorded + uploaded clips</span></span>
       <span class="store"><b>datasets/</b> <span class="sd">training filelists</span></span>
       <span class="store"><b>models/</b> <span class="sd">fine-tuned weights</span></span>
       <span class="store"><b>generations/</b> <span class="sd">TTS output</span></span>
@@ -301,12 +303,12 @@
 
     <div class="journey train">
       <span class="jtag">Train</span>
-      <span class="jstep">90 prompts</span><span class="jarrow">▸</span>
+      <span class="jstep">90 prompts or uploads</span><span class="jarrow">▸</span>
       <span class="jstep">quality gate</span><span class="jarrow">▸</span>
       <span class="jstep">Whisper verify</span><span class="jarrow">▸</span>
       <span class="jstep">s2 + s1 training</span><span class="jarrow">▸</span>
       <span class="jstep">★ voice in library</span>
-      <span class="jnote">Takes are loudness-normalised, transcript-checked (score &lt; 0.6 excluded), then trained overnight on CPU in the isolated venv.</span>
+      <span class="jnote">Recorded prompts and uploaded audio both become takes (uploads are silence-split and auto-transcribed by ingest.py). Takes are loudness-normalised, transcript-checked (score &lt; 0.6 excluded), then trained overnight on CPU in the isolated venv.</span>
     </div>
 
     <div class="journey conv">
